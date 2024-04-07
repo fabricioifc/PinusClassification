@@ -38,13 +38,15 @@ Em seguida, ative o ambiente virtual. No Windows, execute o comando abaixo:
 .venv\Scripts\activate
 ```
 
+## Instalando as bibliotecas
+
 Para executar o projeto, é necessário instalar as bibliotecas necessárias. O arquivo `requirements.txt` contém todas as bibliotecas necessárias para executar o projeto. Para instalar as bibliotecas, execute o comando abaixo:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## PyTorch
+## Instalando o PyTorch
 
 O projeto utiliza a biblioteca PyTorch para treinar o modelo de classificação. Para instalar o PyTorch, acesse o site oficial da biblioteca e siga as instruções de instalação para o seu sistema operacional. O PyTorch pode ser instalado com ou sem suporte para GPU. Para instalar o PyTorch com suporte para GPU, é necessário instalar o CUDA Toolkit. Para instalar o PyTorch sem suporte para GPU, execute o comando abaixo:
 
@@ -54,16 +56,39 @@ Mais detalhes sobre a instalação do PyTorch podem ser encontrados no site ofic
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 
+## Treinamento do Modelo
+
 Após instalar as bibliotecas, execute o arquivo main.py para treinar o modelo e classificar as imagens. Use o comando abaixo:
 
 ```bash
-python main.py --epochs=10 --batch_size=4 --f
+python main.py --epochs=10 --batch_size=4
 ```
 
 onde:
 - *--epochs*: número de épocas para treinar o modelo (opcional)
 - *--batch_size*: tamanho do batch para treinar o modelo (opcional)
-- *--f*: flag para indicar se deseja retreinar o modelo ou não (opcional)
+
+## Treinamento do Modelo em Background
+
+Para treinar o modelo em background, execute o comando abaixo:
+
+```bash
+nohup python main.py --epochs=10 --batch_size=4 > output.log &
+```
+
+ - *Observação*: o comando acima só funciona em sistemas Linux/Debian. Instale o pacote `coreutils` para utilizar o comando `nohup`. Para instalar o pacote, execute o comando abaixo:
+
+```bash
+sudo apt-get install coreutils
+```
+
+## Apenas Teste
+
+Para testar o modelo salvo, execute o arquivo main.py com a opção `--test`:
+
+```bash
+python main.py --test
+```
 
 ## Resultados
 
