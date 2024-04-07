@@ -103,7 +103,7 @@ def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device,
                 running_corrects += torch.sum(preds == labels.data)
 
                 # Update TQDM progress bar
-                dataloader.set_postfix({'loss': loss.item()})
+                dataloader.set_postfix({'loss': loss.item(), 'acc': running_corrects.double() / inputs.size(0)})
 
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
