@@ -44,6 +44,16 @@ Para executar o projeto, é necessário instalar as bibliotecas necessárias. O 
 pip install -r requirements.txt
 ```
 
+## PyTorch
+
+O projeto utiliza a biblioteca PyTorch para treinar o modelo de classificação. Para instalar o PyTorch, acesse o site oficial da biblioteca e siga as instruções de instalação para o seu sistema operacional. O PyTorch pode ser instalado com ou sem suporte para GPU. Para instalar o PyTorch com suporte para GPU, é necessário instalar o CUDA Toolkit. Para instalar o PyTorch sem suporte para GPU, execute o comando abaixo:
+
+Mais detalhes sobre a instalação do PyTorch podem ser encontrados no site oficial da biblioteca: [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/)
+
+```bash
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
 Após instalar as bibliotecas, execute o arquivo main.py para treinar o modelo e classificar as imagens. Use o comando abaixo:
 
 ```bash
