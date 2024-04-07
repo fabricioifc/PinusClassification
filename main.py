@@ -10,7 +10,7 @@ import copy
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import argparse
-from utils import save_confusion_matrix, save_training_graph, save_results, load_model, save_image_names_after_test, clear_terminal, Results
+from utils import save_confusion_matrix, save_training_graph, save_results, load_model, save_image_names_after_test, Results
 from efficientnet_pytorch import EfficientNet
 
 params = {
