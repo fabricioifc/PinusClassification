@@ -112,7 +112,7 @@ def load_model_resnet(device, model_path='model.pth'):
         bar = tqdm(total=1, desc='Loading trained model', position=0, leave=True)
         model = models.resnet18(weights=ResNet18_Weights.DEFAULT)
         num_ftrs = model.fc.in_features
-        model.fc = nn.Linear(num_ftrs, 2)
+        model.fc = nn.Linear(num_ftrs, 1)
         model.load_state_dict(torch.load(model_path))
         model = model.to(device)
         bar.update(1)

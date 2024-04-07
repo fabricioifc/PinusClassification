@@ -18,7 +18,6 @@ params = {
     'shuffle': True,
     'num_workers': 4,
     'num_epochs': 10,
-    'patience': 5,
     'loss': {
         'name': 'BCEWithLogitsLoss',
         'params': {}
@@ -42,34 +41,29 @@ params = {
 }
 
 # Train the model epochs and save the best model. Use the best model to test the model and generate the confusion matrix. Use tqdm to show the progress bar. Create a training and validation graphing the loss and accuracy.
-def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device, batch_size, num_epochs=10, patience=10):
+def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device, batch_size, num_epochs=10):
     # Define the start time
     since = time.time()
 
     # Define the best model weights
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
-    best_loss = float('inf')
 
     # Define the history
     history = {'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
-
-    # Patience for early stopping
-    patience_count = 0
 
     # Iterate over the epochs
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
 
-        # Iterate over the training and validation phases
+        # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
             if phase == 'train':
-                model.train()
+                model.train()  # Set model to training mode
             else:
-                model.eval()
+                model.eval()   # Set model to evaluate mode
 
-            # Define the running loss and corrects
             running_loss = 0.0
             running_corrects = 0
 
@@ -87,75 +81,48 @@ def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device,
                 # Forward
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(inputs)
-                    # _, preds = torch.max(outputs, 1)
-                    # loss = criterion(outputs, labels)
                     loss = criterion(outputs.squeeze(), labels)
 
-                    # Backward and optimize
+                    # Backward + optimize only if in training phase
                     if phase == 'train':
                         loss.backward()
                         optimizer.step()
 
                 # Statistics
                 running_loss += loss.item() * inputs.size(0)
-                
-                preds = (torch.sigmoid(outputs) > 0.5).float()  # Aplicando função de ativação sigmoid para obter previsões
+                preds = (torch.sigmoid(outputs) > 0.5).float() # Aplicando função de ativação sigmoid para obter previsões
                 running_corrects += torch.sum(preds == labels.data)
-
-                # Update TQDM progress bar
-                dataloader.set_postfix({'loss': loss.item()})
 
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
+
+            print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
             # save the history
             history[f'{phase}_loss'].append(epoch_loss)
             history[f'{phase}_acc'].append(epoch_acc.item())
 
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
-
             # Deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
-                patience_count = 0
-            elif phase == 'val':
-                patience_count += 1
-
-        # Check for early stopping
-        if patience_count >= patience:
-            print('Early stopping after {} epochs without improvement'.format(patience))
-            break
 
         print()
 
-    # Define the end time
+    # Calculate the time elapsed
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
     print('Best val Acc: {:4f}'.format(best_acc))
 
-    # Load best model weights
+    # Save the best model weights
     model.load_state_dict(best_model_wts)
-
-    #  # Suaviza os dados do histórico
-    # for key in ['train_loss', 'train_acc', 'val_loss', 'val_acc']:
-    #     history[key] = exponential_smoothing(history[key], alpha)
+    torch.save(model.state_dict(), 'results/model.pth')
 
     # Save the training graph
     save_training_graph(history, filename='results/training_graph.png')
 
-    # save a text with parameters, model used, results and more
-    save_results(Results(
-        time_elapsed=time_elapsed, 
-        best_acc=best_acc,
-        model=model, 
-        optimizer=optimizer, 
-        criterion=criterion,
-        num_epochs=num_epochs, 
-        batch_size=batch_size, 
-        dataset_sizes=dataset_sizes
-    ), filename='results/training_results.txt')
-    
+    # Save the results
+    save_results(Results(time_elapsed, best_acc, model, optimizer, criterion, num_epochs, batch_size, dataset_sizes), filename='results/training_results.txt')
 
     return model
 
@@ -209,11 +176,16 @@ def main(device, epochs=10, batch_size=4, force_train=False):
     # Define the data transforms
     data_transforms = {
         'train': transforms.Compose([
-            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(degrees = 20),
+            transforms.RandomHorizontalFlip(p = 0.3),
+            transforms.RandomVerticalFlip(p = 0.3),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'val': transforms.Compose([
+            transforms.RandomRotation(degrees = 20),
+            transforms.RandomHorizontalFlip(p = 0.3),
+            transforms.RandomVerticalFlip(p = 0.3),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
@@ -236,13 +208,13 @@ def main(device, epochs=10, batch_size=4, force_train=False):
     class_names = image_datasets['train'].classes
 
     # Define the model
-    # model = models.resnet18(weights=ResNet18_Weights)
-    # num_ftrs = model.fc.in_features
-    # model.fc = nn.Linear(num_ftrs, 2)
-    # model = model.to(device)
-
-    model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=1)
+    model = models.resnet18(weights=ResNet18_Weights.DEFAULT)
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, 1)
     model = model.to(device)
+
+    # model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=1)
+    # model = model.to(device)
 
     # Define the loss function
     # criterion = nn.CrossEntropyLoss()
@@ -253,7 +225,7 @@ def main(device, epochs=10, batch_size=4, force_train=False):
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # Train the model, if necessary
-    trained_model = load_model_efficientnet(device=device, model_path='results/model.pth')
+    trained_model = load_model_resnet(device=device, model_path='results/model.pth')
     if force_train or trained_model is None:
         trained_model = train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device, batch_size, num_epochs=epochs)
         torch.save(trained_model.state_dict(), 'results/model.pth')
