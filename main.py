@@ -19,7 +19,7 @@ params = {
     'results_dir': 'results',
     'num_classes': 2,
     'model': {
-        'name': 'efficientnet-b0',
+        'name': 'efficientnet-b7', # resnet18 or efficientnet-b0
     },
     'input_size': 224,
 }
@@ -232,6 +232,9 @@ def main(params, only_test=False):
     elif params['model']['name'] == 'efficientnet-b0':
         model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=params['num_classes'])
         model = model.to(params['device'])
+    elif params['model']['name'] == 'efficientnet-b7':
+        model = EfficientNet.from_pretrained('efficientnet-b7', num_classes=params['num_classes'])
+        model = model.to(params['device'])
 
     # Define the loss function
     criterion = nn.CrossEntropyLoss()
@@ -260,6 +263,8 @@ if __name__ == '__main__':
 
     # Clear the terminal
     os.system('cls' if os.name == 'nt' else 'clear')
+
+    print('Parameters:', params)
 
     # Main function
     main(params, only_test=args.test)
