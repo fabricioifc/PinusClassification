@@ -10,17 +10,46 @@ import copy
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import argparse
-from utils import save_confusion_matrix, save_training_graph, save_results, load_model, Results
+from utils import save_confusion_matrix, save_training_graph, save_results, load_model_resnet, load_model_efficientnet, Results
 from efficientnet_pytorch import EfficientNet
 
+params = {
+    'batch_size': 4,
+    'shuffle': True,
+    'num_workers': 4,
+    'num_epochs': 10,
+    'patience': 5,
+    'loss': {
+        'name': 'BCEWithLogitsLoss',
+        'params': {}
+    },
+    'optimizer': {
+        'name': 'Adam',
+        'lr': 0.001,
+        'params': {}
+    },
+    'model': {
+        'name': 'EfficientNet',
+        'params': {
+            'model_name': 'efficientnet-b0',
+            'num_classes': 1
+        }
+    },
+    'device': 'cuda:0' if torch.cuda.is_available() else 'cpu',
+    'data_dir': 'data',
+    'results_dir': 'results',
+    'class_names': ['pinus', 'not pinus']
+}
+
 # Train the model epochs and save the best model. Use the best model to test the model and generate the confusion matrix. Use tqdm to show the progress bar. Create a training and validation graphing the loss and accuracy.
-def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device, batch_size, num_epochs=10, patience=10):
+def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device, batch_size, num_epochs=10, patience=5):
     # Define the start time
     since = time.time()
 
     # Define the best model weights
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
+    best_loss = float('inf')
 
     # Define the history
     history = {'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
@@ -50,7 +79,7 @@ def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device,
             # Iterate over the data
             for inputs, labels in dataloader:
                 inputs = inputs.to(device)
-                labels = labels.to(device)
+                labels = labels.float().to(device)
 
                 # Zero the parameter gradients
                 optimizer.zero_grad()
@@ -58,8 +87,9 @@ def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device,
                 # Forward
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(inputs)
-                    _, preds = torch.max(outputs, 1)
-                    loss = criterion(outputs, labels)
+                    # _, preds = torch.max(outputs, 1)
+                    # loss = criterion(outputs, labels)
+                    loss = criterion(outputs.squeeze(), labels)
 
                     # Backward and optimize
                     if phase == 'train':
@@ -68,10 +98,12 @@ def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device,
 
                 # Statistics
                 running_loss += loss.item() * inputs.size(0)
+                
+                preds = (torch.sigmoid(outputs) > 0.5).float()  # Aplicando função de ativação sigmoid para obter previsões
                 running_corrects += torch.sum(preds == labels.data)
 
                 # Update TQDM progress bar
-                dataloader.set_postfix({'loss': loss.item(), 'acc': torch.sum(preds == labels.data).item() / len(labels)})
+                dataloader.set_postfix({'loss': loss.item()})
 
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
@@ -80,7 +112,7 @@ def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device,
             history[f'{phase}_loss'].append(epoch_loss)
             history[f'{phase}_acc'].append(epoch_acc.item())
 
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+            print('{} Loss: {:.4f}'.format(phase, epoch_loss))
 
             # Deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
@@ -115,7 +147,7 @@ def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device,
     # save a text with parameters, model used, results and more
     save_results(Results(
         time_elapsed=time_elapsed, 
-        best_acc=best_acc, 
+        best_acc=best_acc,
         model=model, 
         optimizer=optimizer, 
         criterion=criterion,
@@ -132,6 +164,9 @@ def test_model(model, dataloaders, dataset_sizes, device, class_names=['pinus', 
     # Define the model in evaluation
     model.eval()
 
+    all_preds = torch.tensor([]).to(device)
+    all_labels = torch.tensor([]).to(device)
+
     # Define the running corrects
     running_corrects = 0
 
@@ -141,20 +176,25 @@ def test_model(model, dataloaders, dataset_sizes, device, class_names=['pinus', 
     # Iterate over the data
     for inputs, labels in dataloaders['test']:
         inputs = inputs.to(device)
-        labels = labels.to(device)
+        labels = labels.float().to(device)
 
         # Forward
         outputs = model(inputs)
-        _, preds = torch.max(outputs, 1)
 
-        # Statistics
+        preds = (torch.sigmoid(outputs) > 0.5).float()  # Aplicando função de ativação sigmoid para obter previsões
         running_corrects += torch.sum(preds == labels.data)
 
-        for t, p in zip(labels.view(-1), preds.view(-1)):
-            confusion_matrix[t.long(), p.long()] += 1
+        all_preds = torch.cat((all_preds, preds), dim=0)
+        all_labels = torch.cat((all_labels, labels), dim=0)
+        
+
+    # Update the confusion matrix
+    for t, p in zip(all_labels.view(-1), all_preds.view(-1)):
+        confusion_matrix[t.long(), p.long()] += 1
 
     # Define the accuracy
     accuracy = running_corrects.double() / dataset_sizes['test']
+    print('Test Accuracy: {:.4f}'.format(accuracy))
 
     # Export the confusion matrix
     save_confusion_matrix(confusion_matrix, class_names, filename='results/confusion_matrix.png')
@@ -201,18 +241,19 @@ def main(device, epochs=10, batch_size=4, force_train=False):
     # model.fc = nn.Linear(num_ftrs, 2)
     # model = model.to(device)
 
-    model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=len(dataloaders['train'].dataset.classes))
+    model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=1)
     model = model.to(device)
 
     # Define the loss function
-    criterion = nn.CrossEntropyLoss()
+    # criterion = nn.CrossEntropyLoss()
+    criterion = nn.BCEWithLogitsLoss()
 
     # Define the optimizer
     # optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # Train the model, if necessary
-    trained_model = load_model(device=device, model_path='results/model.pth')
+    trained_model = load_model_efficientnet(device=device, model_path='results/model.pth')
     if force_train or trained_model is None:
         trained_model = train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device, batch_size, num_epochs=epochs)
         torch.save(trained_model.state_dict(), 'results/model.pth')
@@ -221,18 +262,16 @@ def main(device, epochs=10, batch_size=4, force_train=False):
     test_model(trained_model, dataloaders, dataset_sizes, device)
 
 if __name__ == '__main__':
-    # Define the device
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    
-    # arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=10, help='Number of epochs')
     parser.add_argument('--batch_size', type=int, default=4, help='Batch size')
-    parser.add_argument('--f', action='store_true', help='Force training the model')
+    parser.add_argument('-f', action='store_true', help='Force training the model')
     args = parser.parse_args()
 
     # Clear the terminal
     os.system('cls' if os.name == 'nt' else 'clear')
+
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     # Main function
     main(device, epochs=args.epochs, batch_size=args.batch_size, force_train=args.f)

@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import seaborn as sns
 import matplotlib.pyplot as plt
 import torch
 from torch import nn
@@ -23,24 +24,10 @@ def save_confusion_matrix(cm, class_names, filename='confusion_matrix.png'):
     plt.figure(figsize=(10, 10))
 
     # Define the confusion matrix
-    plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+    sns.heatmap(cm, annot=True, fmt='g', cmap='Blues', xticklabels=class_names, yticklabels=class_names)
 
     # Define the title
     plt.title('Confusion matrix')
-
-    # Define the color bar
-    plt.colorbar()
-
-    # Define the ticks
-    tick_marks = np.arange(len(class_names))
-    plt.xticks(tick_marks, class_names, rotation=45)
-    plt.yticks(tick_marks, class_names)
-
-    # Define the text
-    thresh = cm.max() / 2.
-    for i in range(cm.shape[0]):
-        for j in range(cm.shape[1]):
-            plt.text(j, i, int(cm[i, j]), horizontalalignment='center', color='white' if cm[i, j] > thresh else 'black')
 
     # Define the labels
     plt.ylabel('True label')
@@ -49,23 +36,62 @@ def save_confusion_matrix(cm, class_names, filename='confusion_matrix.png'):
     # Save the figure
     plt.savefig(filename)
 
+
+# def save_confusion_matrix(cm, class_names, filename='confusion_matrix.png'):
+#     # Define the figure
+#     plt.figure(figsize=(10, 10))
+
+#     # Define the confusion matrix
+#     plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+
+#     # Define the title
+#     plt.title('Confusion matrix')
+
+#     # Define the color bar
+#     plt.colorbar()
+
+#     # Define the ticks
+#     tick_marks = np.arange(len(class_names))
+#     plt.xticks(tick_marks, class_names, rotation=45)
+#     plt.yticks(tick_marks, class_names)
+
+#     # Define the text
+#     thresh = cm.max() / 2.
+#     for i in range(cm.shape[0]):
+#         for j in range(cm.shape[1]):
+#             plt.text(j, i, int(cm[i, j]), horizontalalignment='center', color='white' if cm[i, j] > thresh else 'black')
+
+#     # Define the labels
+#     plt.ylabel('True label')
+#     plt.xlabel('Predicted label')
+
+#     # Save the figure
+#     plt.savefig(filename)
+
+# plot train_loss and val_loss, train_acc and val_acc in the same graph by epoch and save to image
 def save_training_graph(history, filename='training_graph.png'):
-    num_epochs = range(1, len(history['train_loss']) + 1)
-    plt.figure(figsize=(12, 6))
+    # Define the figure
+    plt.figure(figsize=(16, 8))
+
+    # Define the train loss
     plt.subplot(1, 2, 1)
-    plt.plot(num_epochs, history['train_loss'], 'b-', label='Training Loss')
-    plt.plot(num_epochs, history['val_loss'], 'r-', label='Validation Loss')
+    plt.plot(history['train_loss'], label='train loss')
+    plt.plot(history['val_loss'], label='val loss')
+    plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.legend()
+    plt.title('Loss')
+
+    # Define the train accuracy
     plt.subplot(1, 2, 2)
-    plt.plot(num_epochs, history['train_acc'], 'b-', label='Training Accuracy')
-    plt.plot(num_epochs, history['val_acc'], 'r-', label='Validation Accuracy')
+    plt.plot(history['train_acc'], label='train acc')
+    plt.plot(history['val_acc'], label='val acc')
+    plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy')
-    plt.legend()
-    plt.tight_layout()
-    
+    plt.title('Accuracy')
+
+    # Save the figure
     plt.savefig(filename)
 
 
@@ -81,12 +107,23 @@ def save_results(params: Results, filename='training_results.txt'):
         f.write(f'Batch size: {params.batch_size}\n')
         f.write(f'Dataset sizes: {params.dataset_sizes}\n')
 
-def load_model(device, model_path='model.pth'):
+def load_model_resnet(device, model_path='model.pth'):
     if os.path.exists(model_path):
         bar = tqdm(total=1, desc='Loading trained model', position=0, leave=True)
         model = models.resnet18(weights=ResNet18_Weights.DEFAULT)
         num_ftrs = model.fc.in_features
         model.fc = nn.Linear(num_ftrs, 2)
+        model.load_state_dict(torch.load(model_path))
+        model = model.to(device)
+        bar.update(1)
+        return model
+    return None
+
+def load_model_efficientnet(device, model_path='model.pth'):
+    from efficientnet_pytorch import EfficientNet
+    if os.path.exists(model_path):
+        bar = tqdm(total=1, desc='Loading trained model', position=0, leave=True)
+        model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=1)
         model.load_state_dict(torch.load(model_path))
         model = model.to(device)
         bar.update(1)
