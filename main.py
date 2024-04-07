@@ -10,7 +10,7 @@ import copy
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import argparse
-from utils import save_confusion_matrix, save_training_graph, save_results, load_model, save_image_names_after_test, Results
+from utils import save_confusion_matrix, save_training_graph, save_results, load_model, save_image_names_after_test, clear_terminal, Results
 from efficientnet_pytorch import EfficientNet
 
 params = {
@@ -155,9 +155,6 @@ def test_model(model, dataloaders, dataset_sizes, device, class_names=['pinus', 
         # Statistics
         running_corrects += torch.sum(preds == labels.data)
 
-        # Get image names
-        batch_image_names = dataloaders['test'].dataset.samples
-
         for t, p in zip(labels.view(-1), preds.view(-1)):
             confusion_matrix[t.long(), p.long()] += 1
 
@@ -261,10 +258,7 @@ if __name__ == '__main__':
     params['epochs'] = args.epochs
     params['batch_size'] = args.batch_size
 
-    # Clear the terminal
     os.system('cls' if os.name == 'nt' else 'clear')
-
-    print('Parameters:', params)
 
     # Main function
     main(params, only_test=args.test)
