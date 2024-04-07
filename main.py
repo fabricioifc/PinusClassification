@@ -13,7 +13,7 @@ import argparse
 from utils import save_confusion_matrix, save_training_graph, save_results, load_model, Results
 
 # Train the model epochs and save the best model. Use the best model to test the model and generate the confusion matrix. Use tqdm to show the progress bar. Create a training and validation graphing the loss and accuracy.
-def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device, batch_size, num_epochs=10, patience=3):
+def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device, batch_size, num_epochs=10, patience=5):
     # Define the start time
     since = time.time()
 
