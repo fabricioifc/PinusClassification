@@ -92,4 +92,12 @@ python main.py --test
 
 ## Resultados
 
-Os resultados serão salvos na pasta `results` e serão exibidos no console.
+Os resultados serão salvos na pasta `results`. 
+
+## Como Contribuir
+
+Para contribuir com o projeto, faça um fork e envie um pull request com as suas alterações.
+
+## Licença
+
+O projeto está licenciado sob a licença GNU General Public License v3.0. Para mais informações, acesse o arquivo LICENSE.
