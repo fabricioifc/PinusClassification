@@ -19,7 +19,7 @@ params = {
     'results_dir': 'results',
     'num_classes': 2,
     'model': {
-        'name': 'efficientnet-b7', # resnet18 or efficientnet-b0
+        'name': 'efficientnet-b0', # resnet18, efficientnet-b0 or efficientnet-b7
     },
     'input_size': 224,
 }
