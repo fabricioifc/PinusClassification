@@ -103,7 +103,7 @@ def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device,
                 running_corrects += torch.sum(preds == labels.data)
 
                 # Update TQDM progress bar
-                dataloader.set_postfix({'loss': loss.item(), 'acc': running_corrects.double() / inputs.size(0)})
+                dataloader.set_postfix({'loss': loss.item()})
 
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
@@ -112,7 +112,7 @@ def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device,
             history[f'{phase}_loss'].append(epoch_loss)
             history[f'{phase}_acc'].append(epoch_acc.item())
 
-            print('{} Loss: {:.4f}'.format(phase, epoch_loss))
+            print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
             # Deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
