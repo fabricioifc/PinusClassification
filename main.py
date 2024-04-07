@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import argparse
 from utils import save_confusion_matrix, save_training_graph, save_results, load_model, Results
+from efficientnet_pytorch import EfficientNet
 
 # Train the model epochs and save the best model. Use the best model to test the model and generate the confusion matrix. Use tqdm to show the progress bar. Create a training and validation graphing the loss and accuracy.
 def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device, batch_size, num_epochs=10, patience=5):
@@ -195,16 +196,20 @@ def main(device, epochs=10, batch_size=4, force_train=False):
     class_names = image_datasets['train'].classes
 
     # Define the model
-    model = models.resnet18(weights=ResNet18_Weights.DEFAULT)
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 2)
+    # model = models.resnet18(weights=ResNet18_Weights)
+    # num_ftrs = model.fc.in_features
+    # model.fc = nn.Linear(num_ftrs, 2)
+    # model = model.to(device)
+
+    model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=len(dataloaders['train'].dataset.classes))
     model = model.to(device)
 
     # Define the loss function
     criterion = nn.CrossEntropyLoss()
 
     # Define the optimizer
-    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    # optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # Train the model, if necessary
     trained_model = load_model(device=device, model_path='results/model.pth')
