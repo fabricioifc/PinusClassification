@@ -247,3 +247,4 @@ if __name__ == '__main__':
 
     # Main function
     main(device, epochs=args.epochs, batch_size=args.batch_size, force_train=args.f)
+    
