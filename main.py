@@ -238,7 +238,7 @@ def main(params, only_test=False):
 
     # Define the optimizer
     # optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
 
     # Train the model, if necessary
     if not only_test:
