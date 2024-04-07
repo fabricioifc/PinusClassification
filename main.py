@@ -42,7 +42,7 @@ params = {
 }
 
 # Train the model epochs and save the best model. Use the best model to test the model and generate the confusion matrix. Use tqdm to show the progress bar. Create a training and validation graphing the loss and accuracy.
-def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device, batch_size, num_epochs=10, patience=5):
+def train_model(model, criterion, optimizer, dataloaders, dataset_sizes, device, batch_size, num_epochs=10, patience=10):
     # Define the start time
     since = time.time()
 
