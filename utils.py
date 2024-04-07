@@ -6,9 +6,11 @@ from torch import nn
 from torchvision.models import ResNet18_Weights
 from tqdm import tqdm
 from torchvision import models
+from efficientnet_pytorch import EfficientNet
+from torchinfo import summary
 
 class Results:
-    def __init__(self, time_elapsed, best_acc, model, optimizer, criterion, num_epochs, batch_size, dataset_sizes):
+    def __init__(self, time_elapsed, best_acc, model, optimizer, criterion, num_epochs, batch_size, dataset_sizes, device, input_size):
         self.time_elapsed = time_elapsed
         self.best_acc = best_acc
         self.model = model
@@ -17,6 +19,8 @@ class Results:
         self.num_epochs = num_epochs
         self.batch_size = batch_size
         self.dataset_sizes = dataset_sizes
+        self.device = device
+        self.input_size = input_size
 
 def save_confusion_matrix(cm, class_names, filename='confusion_matrix.png'):
     # Define the figure
@@ -81,20 +85,29 @@ def save_results(params: Results, filename='training_results.txt'):
         f.write(f'Batch size: {params.batch_size}\n')
         f.write(f'Dataset sizes: {params.dataset_sizes}\n')
 
-def load_model(device, model_path='model.pth'):
-    if os.path.exists(model_path):
-        bar = tqdm(total=1, desc='Loading trained model', position=0, leave=True)
-        model = models.resnet18(weights=ResNet18_Weights.DEFAULT)
-        num_ftrs = model.fc.in_features
-        model.fc = nn.Linear(num_ftrs, 2)
-        model.load_state_dict(torch.load(model_path))
-        model = model.to(device)
-        bar.update(1)
-        return model
-    return None
+    # summary(params.model, input_size=(params.batch_size, 3, params.input_size, params.input_size), device=params.device, col_names=("input_size", "output_size", "num_params"), col_width=16)
 
-# def exponential_smoothing(data, alpha):
-#     smoothed_data = [data[0]]
-#     for i in range(1, len(data)):
-#         smoothed_data.append(alpha * data[i] + (1 - alpha) * smoothed_data[-1])
-#     return smoothed_data
+def load_model(params, model_path='model.pth'):
+    if os.path.exists(model_path):
+        if params['model']['name'] == 'resnet18':
+            model = models.resnet18(weights=ResNet18_Weights.DEFAULT)
+            num_ftrs = model.fc.in_features
+            model.fc = nn.Linear(num_ftrs, params['num_classes'])
+            model.load_state_dict(torch.load(model_path))
+            model = model.to(params['device'])
+            return model
+        elif params['model']['name'] == 'efficientnet-b0':
+            model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=params['num_classes'])
+            model.load_state_dict(torch.load(model_path))
+            model = model.to(params['device'])
+            return model
+        return None
+    
+def save_image_names_after_test(image_names_correct, image_names_incorrect, filename='results/image_names_predicted.txt'):
+    with open(filename, 'w') as f:
+        f.write('Correctly predicted images:\n')
+        for name in image_names_correct:
+            f.write(f'{name}\n')
+        f.write('\nIncorrectly predicted images:\n')
+        for name in image_names_incorrect:
+            f.write(f'{name}\n')
