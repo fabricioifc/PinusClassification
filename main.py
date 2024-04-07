@@ -10,7 +10,6 @@ import copy
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import argparse
-import multiprocessing
 from utils import save_confusion_matrix, save_training_graph, save_results, load_model, save_image_names_after_test, Results
 from efficientnet_pytorch import EfficientNet
 
@@ -254,7 +253,6 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=10, help='Number of epochs')
     parser.add_argument('--batch_size', type=int, default=4, help='Batch size')
     parser.add_argument('--test', action='store_true', help='Only test the model')
-    parser.add_argument('-d', action='store_true', help='Run in daemon mode')
     args = parser.parse_args()
 
     params['epochs'] = args.epochs
@@ -263,9 +261,4 @@ if __name__ == '__main__':
     os.system('cls' if os.name == 'nt' else 'clear')
 
     # Main function
-    if os.name == 'nt' or not args.d:
-        main(params, only_test=args.test)
-    else:
-        progress = multiprocessing.Process(target=main, args=(params,), kwargs={'only_test': args.test})
-        progress.start()
-        print('Running in daemon mode...')
+    main(params, only_test=args.test)
